@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>艋舺・歲月封印｜實境解謎</title>
+    <style>
+        :root {
+            --primary-color: #8B2E2E; /* 剝皮寮紅磚色 */
+            --bg-color: #F4E9D8; /* 復古紙張色 */
+            --text-color: #2C2C2C;
+            --accent-color: #D4AF37;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: radial-gradient(#d4c5a9 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border: 2px solid var(--primary-color);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1, h2 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .story-text {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #6d2222;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+
+        .error { color: #d9534f; }
+        .success { color: #5cb85c; }
+        .hint-box {
+            margin-top: 15px;
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 5px;
+            color: #856404;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            height: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .footer {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="login-screen">
+        <h2>🔐 探員登入</h2>
+        <p>請輸入廠商提供的通行密碼以啟動<br>「剝皮寮時光機」</p>
+        <input type="password" id="password-input" placeholder="請輸入密碼 (1730)">
+        <button onclick="checkPassword()">開始任務</button>
+        <div id="login-message" class="message"></div>
+    </div>
+
+    <div class="container hidden" id="game-screen">
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <h2 id="level-title">關卡 1</h2>
+        <div id="question-text" class="story-text">
+            </div>
+        <input type="text" id="answer-input" placeholder="在此輸入答案...">
+        <button onclick="submitAnswer()">確認</button>
+        
+        <div id="game-message" class="message"></div>
+        <div id="hint-box" class="hint-box">
+            💡 提示：<span id="hint-text"></span>
+        </div>
+    </div>
+
+    <div class="container hidden" id="win-screen">
+        <h1>🎉 任務完成！</h1>
+        <p class="story-text">
+            恭喜你解開了剝皮寮的歲月封印！<br>
+            歷史的記憶已經成功修復。
+        </p>
+        <p>請向工作人員出示此畫面領取獎勵。</p>
+        <button onclick="location.reload()">重新開始</button>
+    </div>
+
+    <script>
+        // --- 遊戲設定與資料 ---
+        const GAME_PASSWORD = "1730"; // 廠商密碼
+        
+        // 關卡資料庫 (可在此修改題目)
+        const levels = [
+            {
+                title: "第一關：磚牆的秘密",
+                question: "請觀察周圍的紅磚牆，尋找一種刻有英文字母的特殊磚塊。這代表了日治時期台灣煉瓦株式會社的品質保證。請問磚塊上刻的兩個英文字母是什麼？",
+                answer: ["TR", "tr", "Tr"], // 支援多種大小寫輸入
+                hint: "這兩個字母是 'Taiwan Renga' (台灣煉瓦) 的縮寫。"
+            },
+            {
+                title: "第二關：腳下的智慧",
+                question: "剝皮寮的建築設計考量了多雨的氣候。請看看這條長廊，這種建築立面內縮，留出人行通道的空間，在台灣建築術語中被稱為什麼？(三個字)",
+                answer: ["亭仔腳", "騎樓"],
+                hint: "台語發音類似 'Ting-A-Ka'，也是現代騎樓的前身。"
+            },
+            {
+                title: "第三關：歷史的痕跡",
+                question: "走到街區的盡頭，你會看到關於這裡地名的介紹。請問「剝皮寮」的「剝皮」二字，根據考證，最主要是在剝什麼東西的皮？(兩個字)",
+                answer: ["樹皮", "福杉", "木材"],
+                hint: "早期這裡是木材集散地，主要從福建運來的杉木會在此進行處理。"
+            }
+        ];
+
+        let currentLevel = 0;
+        let wrongAttempts = 0;
+
+        // --- 系統功能 ---
+
+        function checkPassword() {
+            const input = document.getElementById('password-input');
+            const message = document.getElementById('login-message');
+            const container = document.getElementById('login-screen');
+
+            if (input.value === GAME_PASSWORD) {
+                container.classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('fade-in');
+                loadLevel();
+            } else {
+                message.textContent = "⛔ 密碼錯誤，請重新輸入";
+                message.className = "message error";
+                container.classList.add('shake');
+                setTimeout(() => container.classList.remove('shake'), 500);
+                input.value = "";
+            }
+        }
+
+        function loadLevel() {
+            const level = levels[currentLevel];
+            document.getElementById('level-title').innerText = level.title;
+            document.getElementById('question-text').innerText = level.question;
+            document.getElementById('answer-input').value = "";
+            document.getElementById('game-message').innerText = "";
+            document.getElementById('hint-box').style.display = "none";
+            
+            // 更新進度條
+            const progress = (currentLevel / levels.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            
+            wrongAttempts = 0;
+        }
+
+        function submitAnswer() {
+            const input = document.getElementById('answer-input');
+            const message = document.getElementById('game-message');
+            const userAns = input.value.trim();
+            const currentData = levels[currentLevel];
+
+            if (!userAns) {
+                message.textContent = "⚠️ 請輸入答案";
+                message.className = "message";
+                return;
+            }
+
+            // 檢查答案 (支援模糊比對)
+            if (currentData.answer.includes(userAns)) {
+                // 答對
+                message.textContent = "✅ 正確答案！";
+                message.className = "message success";
+                
+                setTimeout(() => {
+                    currentLevel++;
+                    if (currentLevel < levels.length) {
+                        loadLevel();
+                        // 簡單的過場動畫
+                        document.getElementById('game-screen').classList.remove('fade-in');
+                        void document.getElementById('game-screen').offsetWidth; // trigger reflow
+                        document.getElementById('game-screen').classList.add('fade-in');
+                    } else {
+                        showWinScreen();
+                    }
+                }, 1000);
+
+            } else {
+                // 答錯
+                wrongAttempts++;
+                message.textContent = "❌ 答案不對，再觀察看看";
+                message.className = "message error";
+                
+                const container = document.getElementById('game-screen');
+                container.classList.add('shake');
+                setTimeout(() => container.classList.remove('shake'), 500);
+
+                // 錯誤兩次顯示提示
+                if (wrongAttempts >= 2) {
+                    document.getElementById('hint-text').innerText = currentData.hint;
+                    document.getElementById('hint-box').style.display = "block";
+                    document.getElementById('hint-box').classList.add('fade-in');
+                }
+            }
+        }
+
+        function showWinScreen() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('win-screen').classList.remove('hidden');
+            document.getElementById('win-screen').classList.add('fade-in');
+        }
+
+        // 支援按 Enter 送出
+        document.getElementById('password-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') checkPassword();
+        });
+        document.getElementById('answer-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitAnswer();
+        });
+
+    </script>
+</body>
+</html>
